@@ -16,6 +16,8 @@ import java.util.Optional;
  */
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    Optional<User> findByAccountId(String accountId);
+
     // --- 중복 검사 (탈퇴 계정 포함) ---
 
     /** 아이디 중복 확인. */

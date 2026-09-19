@@ -38,7 +38,7 @@ public class User extends BaseTimeEntity {
     private Long id;
 
     /** 로그인 아이디. 가입 후 변경할 수 없다. */
-    @Column(nullable = false, updatable = false, length = 30)
+    @Column(nullable = false, unique = true, updatable = false, length = 30)
     private String accountId;
 
     /**

@@ -3,9 +3,14 @@ package com.ontheway.controller;
 import com.ontheway.dto.request.*;
 import com.ontheway.dto.response.*;
 import com.ontheway.global.response.ApiResponse;
+import com.ontheway.global.security.CustomUserDetails;
+import com.ontheway.service.AuthService;
+import com.ontheway.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,17 +19,23 @@ import java.time.LocalDateTime;
 @RestController
 @RequestMapping("/user")
 @Tag(name = "회원 관리")
+@RequiredArgsConstructor
 public class UserController {
+    private final UserService userService;
+    private final AuthService authService;
+
     @PostMapping("/signup")
     @Operation(summary = "회원가입")
-    public ApiResponse<?> signUp(@RequestBody MemberSaveRequestDto memberSaveRequestDto) {
-        return ApiResponse.success(MemberSaveResponseDto.builder().build());
+    public ApiResponse<?> signUp(@RequestBody MemberSaveRequestDto dto) {
+        userService.signup(dto);
+        return ApiResponse.success(MemberSaveResponseDto.builder().createdAt(LocalDateTime.now()).build());
     }
 
     @PostMapping("/check/id")
     @Operation(summary = "아이디 중복검사")
-    public ApiResponse<?> checkId(@RequestBody MemberCheckIdReqeustDto memberCheckIdReqeustDto) {
-        return ApiResponse.success(MemberCheckIdResponseDto.builder().build());
+    public ApiResponse<?> checkId(@RequestBody MemberCheckIdReqeustDto dto) {
+        boolean isDuplicated = userService.isDuplicated(dto);
+        return ApiResponse.success(MemberCheckIdResponseDto.builder().isExist(isDuplicated).build());
     }
 
     @PostMapping("/find/id")
@@ -41,14 +52,20 @@ public class UserController {
 
     @GetMapping("/info")
     @Operation(summary = "내 정보 조회")
-    public ApiResponse<?> info() {
-        return ApiResponse.success(MemberDetailResponseDto.builder().build());
+    public ApiResponse<?> info(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ApiResponse.success(userService.getInfo(userDetails.getUserId()));
     }
 
-    @PatchMapping(name = "/info", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PatchMapping(value = "/info", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "내 정보 수정")
     public ApiResponse<?> updateInfo(@RequestPart MemberUpdateInfoRequestDto memberUpdateInfoRequestDto, @RequestPart(required = false) MultipartFile image) {
         return ApiResponse.success(MemberUpdateInfoResponseDto.builder().build());
+    }
+
+    @PostMapping("/login")
+    @Operation(summary = "로그인")
+    public ApiResponse<?> login(@RequestBody MemberLoginRequestDto dto) {
+        return ApiResponse.success(authService.login(dto));
     }
 
     @PostMapping("/logout")
