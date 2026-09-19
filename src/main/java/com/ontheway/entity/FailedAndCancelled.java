@@ -82,4 +82,8 @@ public class FailedAndCancelled extends BaseCreatedEntity {
     public static FailedAndCancelled failedBy(DeliveryOrder order, User actor, String reason) {
         return new FailedAndCancelled(order, ResultType.FAILED, actor, reason);
     }
+
+    public Delivery getDelivery() {
+        return order.getDelivery();
+    }
 }

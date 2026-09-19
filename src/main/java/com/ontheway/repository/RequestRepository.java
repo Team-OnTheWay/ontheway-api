@@ -1,5 +1,6 @@
 package com.ontheway.repository;
 
+import com.ontheway.entity.Delivery;
 import com.ontheway.entity.Request;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -180,4 +181,6 @@ public interface RequestRepository extends JpaRepository<Request, Long> {
     int rejectSiblingsByProduct(@Param("productId") Long productId,
                                 @Param("acceptedRequestId") Long acceptedRequestId,
                                 @Param("now") LocalDateTime now);
+
+    int countByDelivery(Delivery delivery);
 }

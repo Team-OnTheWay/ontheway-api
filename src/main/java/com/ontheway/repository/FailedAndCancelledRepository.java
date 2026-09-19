@@ -1,8 +1,15 @@
 package com.ontheway.repository;
 
+import com.ontheway.entity.Delivery;
+import com.ontheway.entity.DeliveryOrder;
 import com.ontheway.entity.FailedAndCancelled;
+import com.ontheway.entity.User;
+import com.ontheway.enums.DeliveryStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -16,4 +23,8 @@ import java.util.Optional;
 public interface FailedAndCancelledRepository extends JpaRepository<FailedAndCancelled, Long> {
 
     Optional<FailedAndCancelled> findByOrderId(Long orderId);
+
+    Page<FailedAndCancelled> findByOrder_Request_Product_AuthorAndOrder_StatusIn(User user, List<DeliveryStatus> failed, PageRequest of);
+
+    List<FailedAndCancelled> findByOrder_Request_Delivery(Delivery orderRequestDelivery);
 }

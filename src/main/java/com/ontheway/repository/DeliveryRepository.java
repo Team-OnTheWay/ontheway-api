@@ -1,8 +1,15 @@
 package com.ontheway.repository;
 
 import com.ontheway.entity.Delivery;
+import com.ontheway.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -20,4 +27,34 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long>, Deliv
 
     /** 최근 게시물 불러오기. 직전에 쓴 글 한 건을 등록 양식에 채워준다. 삭제글은 뺀다. */
     Optional<Delivery> findTopByAuthorIdAndDeletedAtIsNullOrderByIdDesc(Long authorId);
+
+    @Query(value = "SELECT d FROM Delivery d " +
+            "WHERE (:startAddress IS NULL OR d.departure.address LIKE %:startAddress%) " +
+            "AND (:endAddress IS NULL OR d.destination.address LIKE %:endAddress%) " +
+            "AND (:hopePrice IS NULL OR d.desiredPrice <= :hopePrice) " +
+            "AND (:rating IS NULL OR (SELECT COALESCE(AVG(r.rating), 0) FROM Review r WHERE r.order.request.delivery.author = d.author) >= :rating) " +
+            "AND d.deletedAt IS NULL",
+            countQuery = "SELECT COUNT(d) FROM Delivery d " +
+                    "WHERE (:startAddress IS NULL OR d.departure.address LIKE %:startAddress%) " +
+                    "AND (:endAddress IS NULL OR d.destination.address LIKE %:endAddress%) " +
+                    "AND (:hopePrice IS NULL OR d.desiredPrice <= :hopePrice) " +
+                    "AND (:rating IS NULL OR (SELECT COALESCE(AVG(r.rating), 0) FROM Review r WHERE r.order.request.delivery.author = d.author) >= :rating) " +
+                    "AND d.deletedAt IS NULL")
+    Page<Delivery> findAllBySearch(@Param("startAddress") String startAddress, @Param("endAddress") String endAddress, @Param("rating") Double rating, @Param("hopePrice") Integer hopePrice, Pageable pageable);
+
+    @Query(value = "SELECT d FROM Delivery d " +
+            "WHERE d.author = :author " +
+            "AND (:startAddress IS NULL OR d.departure.address LIKE %:startAddress%) " +
+            "AND (:endAddress IS NULL OR d.destination.address LIKE %:endAddress%) " +
+            "AND (:hopePrice IS NULL OR d.desiredPrice <= :hopePrice) " +
+            "AND (:rating IS NULL OR (SELECT COALESCE(AVG(r.rating), 0) FROM Review r WHERE r.order.request.delivery.author = d.author) >= :rating) " +
+            "AND d.deletedAt IS NULL",
+            countQuery = "SELECT COUNT(d) FROM Delivery d " +
+                    "WHERE d.author = :author " +
+                    "AND (:startAddress IS NULL OR d.departure.address LIKE %:startAddress%) " +
+                    "AND (:endAddress IS NULL OR d.destination.address LIKE %:endAddress%) " +
+                    "AND (:hopePrice IS NULL OR d.desiredPrice <= :hopePrice) " +
+                    "AND (:rating IS NULL OR (SELECT COALESCE(AVG(r.rating), 0) FROM Review r WHERE r.order.request.delivery.author = d.author) >= :rating) " +
+                    "AND d.deletedAt IS NULL")
+    List<Delivery> findAllBySearchAuthorAndDeletedAt(@Param("author") User author, @Param("startAddress") String startAddress, @Param("endAddress") String endAddress, @Param("rating") Double rating, @Param("hopePrice") Integer hopePrice, Pageable pageable);
 }

@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 /**
  * 사용자.
@@ -117,5 +118,9 @@ public class User extends BaseTimeEntity {
     /** 프로필 이미지 변경. {@code null} 을 넣으면 기본 이미지로 돌아간다. */
     public void changeProfileImage(String profileImageUrl) {
         this.profileImageUrl = profileImageUrl;
+    }
+
+    public boolean checkIsOwner(Long id) {
+        return Objects.equals(this.id, id);
     }
 }

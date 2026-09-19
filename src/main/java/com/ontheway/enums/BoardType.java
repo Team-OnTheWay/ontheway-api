@@ -2,5 +2,6 @@ package com.ontheway.enums;
 
 public enum BoardType {
     DELIVERY,
-    REQUEST
+    REQUEST,
+    FAILED_AND_CANCELLED
 }

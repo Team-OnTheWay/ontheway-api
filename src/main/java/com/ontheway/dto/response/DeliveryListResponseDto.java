@@ -15,7 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 public class DeliveryListResponseDto {
     @Schema(description = "의뢰 요청 목록")
-    private List<DeliveryList> DeliveryList;
+    private List<DeliveryList> deliveryList;
 
     @Data
     @Builder
