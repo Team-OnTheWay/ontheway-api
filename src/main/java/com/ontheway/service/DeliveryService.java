@@ -14,7 +14,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,19 +30,39 @@ public class DeliveryService {
     private final ImageRepository imageRepository;
 
     public DeliveryListResponseDto list(DeliveryListRequestDto deliveryListRequestDto) {
-        Page<Delivery> deliveries = deliveryRepository.findAllBySearch(deliveryListRequestDto.getStartAddress(), deliveryListRequestDto.getEndAddress(), deliveryListRequestDto.getRating(), deliveryListRequestDto.getHopePrice(), PageRequest.of(deliveryListRequestDto.getPage(), deliveryListRequestDto.getSize()));
+        Page<Delivery> deliveries = deliveryRepository.findAllBySearch(
+                deliveryListRequestDto.getStartAddress(),
+                deliveryListRequestDto.getEndAddress(),
+                deliveryListRequestDto.getRating(),
+                deliveryListRequestDto.getHopePrice(),
+                PageRequest.of(deliveryListRequestDto.getPage(), deliveryListRequestDto.getSize())
+        );
 
-        List<DeliveryListResponseDto.DeliveryList> deliveryList =
-                deliveries.map(delivery -> DeliveryListResponseDto.DeliveryList.builder()
+        List<Delivery> deliveryList = deliveries.getContent();
+
+        if (deliveryList.isEmpty()) {
+            return DeliveryListResponseDto.builder().deliveryList(Collections.emptyList()).build();
+        }
+
+        List<DeliveryOrder> existingOrders = deliveryOrderRepository.findByRequest_DeliveryIn(deliveryList);
+        Set<Long> excludedDeliveryIds = existingOrders.stream()
+                .map(order -> order.getRequest().getDelivery().getId()).collect(Collectors.toSet());
+
+        List<Delivery> filteredDeliveries = deliveryList.stream()
+                .filter(delivery -> !excludedDeliveryIds.contains(delivery.getId())).toList();
+
+        List<DeliveryListResponseDto.DeliveryList> responseList = filteredDeliveries.stream()
+                .map(delivery -> DeliveryListResponseDto.DeliveryList.builder()
                         .deliveryId(delivery.getId())
                         .startAddress(delivery.getDeparture().getAddress())
                         .endAddress(delivery.getDestination().getAddress())
                         .deliveryDate(delivery.getDeliveryDate().atTime(delivery.getPlannedStartTime()))
                         .hopePrice(delivery.getDesiredPrice())
                         .requestCount(requestRepository.countByDelivery(delivery))
-                        .build()).toList();
+                        .build())
+                .toList();
 
-        return DeliveryListResponseDto.builder().deliveryList(deliveryList).build();
+        return DeliveryListResponseDto.builder().deliveryList(responseList).build();
     }
 
     public DeliveryDetailResponseDto detail(Long userId, DeliveryDetailRequestDto deliveryDetailRequestDto) {

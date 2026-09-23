@@ -117,4 +117,7 @@ public interface DeliveryOrderRepository extends JpaRepository<DeliveryOrder, Lo
     Page<DeliveryOrder> findByRequest_Product_AuthorAndStatusIn(User requestProductAuthor, Collection<DeliveryStatus> statuses, Pageable pageable);
 
     List<DeliveryOrder> findByRequest_Delivery(Delivery requestDelivery);
+
+    @Query("SELECT do FROM DeliveryOrder do WHERE do.request.delivery IN :deliveries")
+    List<DeliveryOrder> findByRequest_DeliveryIn(@Param("deliveries") List<Delivery> deliveries);
 }
