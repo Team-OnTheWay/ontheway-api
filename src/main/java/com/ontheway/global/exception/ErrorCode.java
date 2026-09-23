@@ -21,6 +21,8 @@ public enum ErrorCode {
     TOKEN_EXPIRED(HttpStatus.BAD_REQUEST, "토큰이 만료되었습니다. 다시 로그인 해주세요."),
     INVALID_TOKEN(HttpStatus.BAD_REQUEST, "유효하지 않은 토큰입니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 사용자입니다."),
+    TOKEN_REUSE_DETECTED(HttpStatus.UNAUTHORIZED, "보안 문제가 감지되어 재로그인이 필요합니다."),
+
     // 이메일 인증
     CODE_EXPIRED(HttpStatus.BAD_REQUEST, "인증 시간이 만료되었습니다. 다시 요청해주세요."),
     CODE_MISMATCH(HttpStatus.BAD_REQUEST, "인증번호가 일치하지 않습니다."),

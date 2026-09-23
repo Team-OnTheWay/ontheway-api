@@ -72,7 +72,7 @@ public class JwtLoginFilter extends UsernamePasswordAuthenticationFilter {
         String accessToken = jwtTokenProvider.createAccessToken(accountId);
         String refreshToken = jwtTokenProvider.createRefreshToken(accountId);
 
-        refreshTokenStore.save(accountId, refreshToken);
+        refreshTokenStore.saveOnLogin(accountId, refreshToken);
 
         MemberLoginResponseDto result = MemberLoginResponseDto.builder()
                         .accessToken(accessToken)

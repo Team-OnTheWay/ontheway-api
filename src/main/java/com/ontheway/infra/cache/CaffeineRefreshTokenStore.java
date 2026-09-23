@@ -8,8 +8,9 @@ import java.util.concurrent.TimeUnit;
 
 @Component
 public class CaffeineRefreshTokenStore implements RefreshTokenStore {
-
-    private final Cache<String, String> refreshTokenCache;
+    private static final long GRACE_PERIOD_MILLIS = 5_000;
+    private final Cache<String, TokenRecord> refreshTokenCache;
+    private record TokenRecord(String currentToken, String previousToken, long rotatedAtMillis) {}
 
     public CaffeineRefreshTokenStore(@Value("${jwt.refresh-token-validity}") long refreshTokenValidity) {
         this.refreshTokenCache = Caffeine.newBuilder()
@@ -20,13 +21,35 @@ public class CaffeineRefreshTokenStore implements RefreshTokenStore {
 
     @Override
     public void save(String accountId, String refreshToken) {
-        refreshTokenCache.put(accountId, refreshToken);
+        TokenRecord existing = refreshTokenCache.getIfPresent(accountId);
+        String previous = (existing != null) ? existing.currentToken() : null;
+        refreshTokenCache.put(accountId, new TokenRecord(refreshToken, previous, System.currentTimeMillis()));
     }
 
     @Override
-    public boolean matches(String accountId, String refreshToken) {
-        String saved = refreshTokenCache.getIfPresent(accountId);
-        return saved != null && saved.equals(refreshToken);
+    public void saveOnLogin(String accountId, String refreshToken) {
+        refreshTokenCache.put(accountId, new TokenRecord(refreshToken, null, System.currentTimeMillis()));
+    }
+
+    @Override
+    public TokenValidationResult validate(String accountId, String refreshToken) {
+        TokenRecord record = refreshTokenCache.getIfPresent(accountId);
+
+        if (record == null) {
+            return TokenValidationResult.NOT_FOUND;
+        }
+        if (refreshToken.equals(record.currentToken())) {
+            return TokenValidationResult.VALID;
+        }
+
+        boolean isPreviousToken = refreshToken.equals(record.previousToken());
+        boolean withinGracePeriod = (System.currentTimeMillis() - record.rotatedAtMillis()) <= GRACE_PERIOD_MILLIS;
+
+        if (isPreviousToken && withinGracePeriod) {
+            return TokenValidationResult.VALID_GRACE;
+        }
+
+        return TokenValidationResult.REUSED; //탈취 의심
     }
 
     @Override
