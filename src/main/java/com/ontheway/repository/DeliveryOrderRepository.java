@@ -7,6 +7,7 @@ import com.ontheway.enums.DeliveryStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -83,34 +84,53 @@ public interface DeliveryOrderRepository extends JpaRepository<DeliveryOrder, Lo
     Optional<DeliveryOrder> findByDeliveryIdWithParties(@Param("deliveryId") Long deliveryId);
 
     // --- 스케줄러 ---
-    // 둘 다 대상 상태를 쿼리에 박아뒀다. 파라미터로 받으면 다른 상태로도 부를 수 있는 것처럼
-    // 보이는데, 이 스케줄러는 이 상태 말고는 볼 일이 없다.
+    // 둘 다 엔티티를 읽어 바꾸지 않고 상태 조건을 건 UPDATE 하나로 처리한다. 스케줄러는 OrderService 가
+    // 쥐는 경로 락을 쥐지 않는다. 읽고 나서 커밋하기까지 사이에 같은 건이 실패 처리되면 엔티티 방식은
+    // 그 결과를 덮어쓰는데, WHERE 에 상태를 걸면 이미 바뀐 건은 대상에서 빠진다.
+    // 대상 상태는 쿼리에 박아뒀다. 파라미터로 받으면 다른 상태로도 부를 수 있는 것처럼 보이는데,
+    // 이 스케줄러는 이 상태 말고는 볼 일이 없다.
+    // 벌크 UPDATE 는 감사(@LastModifiedDate)를 타지 않아서 updatedAt 을 직접 set 한다.
 
     /**
-     * 예정 시각이 지난 건을 배송중으로 넘기려고 찾는다.
+     * 예정 시각이 지난 건을 배송중으로 넘긴다. 넘긴 건수를 돌려준다.
      * 경로의 날짜와 시각이 나뉘어 있어 비교가 두 단계다.
+     * {@link com.ontheway.entity.Delivery#isDue} 의 조건과 같아야 한다.
+     * 둘이 어긋나지 않는지는 OrderSchedulerIntegrationTest 가 경계값으로 맞춰 본다.
+     * 바꾸는 필드는 {@link DeliveryOrder#startDelivery} 와 같아야 한다.
      */
+    @Modifying
     @Query("""
-            select o from DeliveryOrder o
-              join fetch o.request rq
-              join fetch rq.delivery d
+            update DeliveryOrder o
+               set o.status = com.ontheway.enums.DeliveryStatus.DELIVERING,
+                   o.deliveryStartedAt = :now,
+                   o.updatedAt = :now
              where o.status = com.ontheway.enums.DeliveryStatus.DELIVERY_WAITING
-               and (d.deliveryDate < :today
-                    or (d.deliveryDate = :today and d.plannedStartTime <= :nowTime))
+               and o.request.id in (
+                   select r.id from Request r
+                     join r.delivery d
+                    where d.deliveryDate < :today
+                       or (d.deliveryDate = :today and d.plannedStartTime <= :nowTime))
             """)
-    List<DeliveryOrder> findDueForDelivering(@Param("today") LocalDate today,
-                                             @Param("nowTime") LocalTime nowTime);
+    int advanceDueToDelivering(@Param("now") LocalDateTime now,
+                               @Param("today") LocalDate today,
+                               @Param("nowTime") LocalTime nowTime);
 
     /**
-     * 확인요청 후 72시간이 지난 건을 배송완료로 넘기려고 찾는다.
+     * 확인요청 후 72시간이 지난 건을 배송완료로 넘긴다. 넘긴 건수를 돌려준다.
      * {@code idx_order_completion_req(status, completion_requested_at)} 를 탄다.
+     * 바꾸는 필드는 {@link DeliveryOrder#complete} 와 같아야 한다.
      */
+    @Modifying
     @Query("""
-            select o from DeliveryOrder o
+            update DeliveryOrder o
+               set o.status = com.ontheway.enums.DeliveryStatus.COMPLETED,
+                   o.completedAt = :now,
+                   o.updatedAt = :now
              where o.status = com.ontheway.enums.DeliveryStatus.COMPLETION_REQUESTED
                and o.completionRequestedAt < :deadline
             """)
-    List<DeliveryOrder> findDueForCompletion(@Param("deadline") LocalDateTime deadline);
+    int completeOverdue(@Param("now") LocalDateTime now,
+                        @Param("deadline") LocalDateTime deadline);
 
     Page<DeliveryOrder> findByRequest_Delivery_AuthorAndStatusIn(User requestDeliveryAuthor, Collection<DeliveryStatus> statuses, Pageable pageable);
 

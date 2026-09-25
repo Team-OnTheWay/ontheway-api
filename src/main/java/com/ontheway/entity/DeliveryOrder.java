@@ -89,7 +89,11 @@ public class DeliveryOrder extends BaseTimeEntity {
         this.pickedUpAt = now;
     }
 
-    /** 예정 시각 도달 -> 배송중. 스케줄러가 부른다. */
+    /**
+     * 예정 시각 도달 -> 배송중. 픽업이 예정 시각 뒤에 이뤄졌을 때 OrderService 가 부른다.
+     * 그 전에 픽업된 건은 스케줄러가 같은 전이를 UPDATE 쿼리로 처리하니(advanceDueToDelivering),
+     * 바꾸는 필드를 고치면 그 쿼리도 같이 고칠 것.
+     */
     public void startDelivery(LocalDateTime now) {
         this.status = DeliveryStatus.DELIVERING;
         this.deliveryStartedAt = now;
@@ -101,7 +105,10 @@ public class DeliveryOrder extends BaseTimeEntity {
         this.completionRequestedAt = now;
     }
 
-    /** 의뢰자 확인 또는 72시간 경과 -> 배송완료. 후기는 이 상태에서만 쓸 수 있다. */
+    /**
+     * 의뢰자 확인 또는 72시간 경과 -> 배송완료. 후기는 이 상태에서만 쓸 수 있다.
+     * 72시간 경과는 스케줄러가 UPDATE 쿼리로 처리하니(completeOverdue), 바꾸는 필드를 고치면 그 쿼리도 같이 고칠 것.
+     */
     public void complete(LocalDateTime now) {
         this.status = DeliveryStatus.COMPLETED;
         this.completedAt = now;

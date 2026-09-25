@@ -241,6 +241,11 @@ public class OrderService {
     private void pickUp(DeliveryOrder order, boolean isDeliverer, LocalDateTime now) {
         require(isDeliverer, ErrorCode.FORBIDDEN);
         order.pickUp(now);
+        // 픽업이 예정 시각을 이미 지나 이뤄졌다면 배송대기중에 머물지 않고 곧장 배송중으로 넘긴다.
+        // 그 전에 픽업이 끝나 대기 중인 건은 스케줄러(OrderScheduler)가 나중에 넘긴다.
+        if (order.getDelivery().isDue(now)) {
+            order.startDelivery(now);
+        }
     }
 
     /** 취소는 당사자 양쪽이 할 수 있다. 당사자인지는 호출 전에 확인했다. */
