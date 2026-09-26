@@ -124,4 +124,15 @@ public class Delivery extends BaseTimeEntity {
     public void delete(LocalDateTime now) {
         this.deletedAt = now;
     }
+
+    /**
+     * 배송 예정 시각이 이미 지났는지.
+     * {@link com.ontheway.repository.DeliveryOrderRepository#advanceDueToDelivering} 의 조건과 같아야
+     * 한다. 둘이 어긋나지 않는지는 OrderSchedulerIntegrationTest 가 경계값으로 맞춰 본다.
+     */
+    public boolean isDue(LocalDateTime now) {
+        LocalDate today = now.toLocalDate();
+        return deliveryDate.isBefore(today)
+                || (deliveryDate.isEqual(today) && !plannedStartTime.isAfter(now.toLocalTime()));
+    }
 }
