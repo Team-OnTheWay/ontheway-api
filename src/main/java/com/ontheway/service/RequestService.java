@@ -97,11 +97,15 @@ public class RequestService {
         Delivery delivery = deliveryRepository.findByIdAndDeletedAtIsNull(deliveryId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.DELIVERY_NOT_FOUND));
 
-        if (!delivery.getAuthor().getId().equals(viewerId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
+        List<Request> requests;
+        if (delivery.getAuthor().getId().equals(viewerId)) {
+            requests = requestRepository.findAllByDeliveryIdWithProductAndAuthor(deliveryId);
+        } else {
+            requests = requestRepository.findMyRequestsOnDelivery(deliveryId, viewerId);
+            if (requests.isEmpty()) {
+                throw new BusinessException(ErrorCode.FORBIDDEN);
+            }
         }
-
-        List<Request> requests = requestRepository.findAllByDeliveryIdWithProductAndAuthor(deliveryId);
 
         List<RequestDeliveryListResponseDto.RequestDelivery> items = requests.stream()
                 .map(this::toRequestDeliveryItem)
@@ -130,6 +134,7 @@ public class RequestService {
                 .desiredDeliveryTime(product.getDesiredArrivalTime().format(DATE_TIME_FORMATTER))
                 .paymentType(product.getPaymentType().name())
                 .createdAt(request.getCreatedAt())
+                .deliveryStatus(request.getStatus())
                 .build();
     }
 

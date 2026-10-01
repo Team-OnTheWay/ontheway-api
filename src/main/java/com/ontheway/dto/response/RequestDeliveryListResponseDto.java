@@ -1,5 +1,6 @@
 package com.ontheway.dto.response;
 
+import com.ontheway.enums.DeliveryStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -48,5 +49,7 @@ public class RequestDeliveryListResponseDto {
         private String paymentType;
         @Schema(description = "게시 등록일")
         private LocalDateTime createdAt;
+        @Schema(description = "의뢰 상태")
+        private DeliveryStatus deliveryStatus;
     }
 }
