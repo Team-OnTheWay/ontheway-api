@@ -46,7 +46,7 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long>, Deliv
             "AND (:endAddress IS NULL OR d.destination.address LIKE %:endAddress%) " +
             "AND (:minHopePrice IS NULL OR d.desiredPrice >= :minHopePrice) " +
             "AND (:maxHopePrice IS NULL OR d.desiredPrice <= :maxHopePrice) " +
-            "AND (:rating IS NULL OR (SELECT COALESCE(AVG(r.rating), 0) FROM Review r WHERE r.order.request.delivery.author = d.author) >= :rating) " +
+            "AND (:rating IS NULL OR (SELECT COALESCE(AVG(r.rating), 0) FROM Review r WHERE (r.order.request.delivery.author = d.author or r.order.request.product.author = d.author) and r.reviewer != d.author) >= :rating) " +
             "AND d.deletedAt IS NULL " +
             "AND d.deliveryDate >= :now " +
             "ORDER BY d.deliveryDate ASC",
