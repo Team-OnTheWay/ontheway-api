@@ -85,6 +85,7 @@ public class SecurityConfig {
                 .authenticationEntryPoint(jwtExceptionHandler)
                 .accessDeniedHandler(jwtExceptionHandler))
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers(PERMIT_ALL_PATTERNS).permitAll()
                 .anyRequest().authenticated()
             )
