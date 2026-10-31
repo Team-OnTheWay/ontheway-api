@@ -100,7 +100,8 @@
 ### Infrastructure & DevOps
 | 구분 | 기술 |
 |------|------|
-| **서버 인프라** | AWS EC2 (Ubuntu), DuckDNS, Nginx |
+| **서버 인프라** | AWS EC2 (Ubuntu) |
+| **도메인 / DNS** | DuckDNS (도메인을 EC2 공인 IP로 연결) |
 | **CI/CD** | Jenkins Pipeline (`Jenkinsfile`), GitHub Actions (PR & Label Sync) |
 | **빌드 도구** | Gradle |
 
@@ -113,9 +114,9 @@
 ```mermaid
 flowchart TD
     Client["웹 프론트엔드 (React / Vercel)"]
+    DuckDNS["DuckDNS<br/>swyp-ontheway.duckdns.org"]
 
     subgraph Server["AWS EC2 (Ubuntu)"]
-        Nginx["Nginx (Reverse Proxy / SSL)"]
         SpringBoot["Spring Boot Application (ontheway-api)"]
         Caffeine["Caffeine In-Memory Cache\n(Refresh Token / GPS Location / Rate Limit)"]
     end
@@ -126,13 +127,16 @@ flowchart TD
         Gmail["Google SMTP (이메일 인증)"]
     end
 
-    Client -->|HTTPS / REST API| Nginx
-    Nginx -->|Proxy Pass 8080| SpringBoot
+    Client -.->|도메인 DNS 조회| DuckDNS
+    DuckDNS -.->|EC2 공인 IP 확인| Client
+    Client -->|조회한 IP로 HTTPS / REST API 요청| SpringBoot
     SpringBoot <--> Caffeine
     SpringBoot -->|JPA / JDBC| Supabase
     SpringBoot -->|AWS S3 SDK| CloudflareR2
     SpringBoot -->|JavaMailSender| Gmail
 ```
+
+클라이언트는 DNS 조회를 통해 DuckDNS 도메인에 연결된 EC2 공인 IP를 확인한 뒤, EC2의 Spring Boot 애플리케이션으로 API를 요청합니다. 점선은 DNS 조회 흐름, 실선은 실제 서비스 통신을 나타내며, DuckDNS는 API 요청을 중계하지 않습니다.
 
 ### 배송 상태 전이 (Delivery Lifecycle)
 
